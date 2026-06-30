@@ -1,0 +1,242 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生長 vs. 發育：生物學挑戰賽</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .question-text {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        /* 新增圖片樣式 */
+        #question-image {
+            max-width: 100%;
+            max-height: 280px;
+            border-radius: 8px;
+            margin: 10px auto;
+            display: none; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            object-fit: cover;
+        }
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            margin: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            color: white;
+            font-weight: bold;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .btn-growth { background-color: #3498db; }
+        .btn-development { background-color: #2ecc71; }
+        .btn-next { background-color: #f39c12; margin-top: 20px; display: none; }
+        .btn-start { background-color: #9b59b6; }
+        
+        #feedback {
+            margin-top: 20px;
+            font-size: 1.1em;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .correct { background-color: #d4efdf; color: #1e8449; }
+        .wrong { background-color: #f5b7b1; color: #c0392b; }
+        
+        #score-display {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="start-screen">
+        <h1>🌱 體量變大 vs. 機能進化 🦋</h1>
+        <p>這是一個測試你生物學直覺的快問快答遊戲！</p>
+        <p><strong>生長 (Growth)：</strong> 數量變多、體積變大 (物理量改變)。<br>
+        <strong>發育 (Development)：</strong> 結構改變、機能進化 (質的改變)。</p>
+        <button class="btn btn-start" onclick="startGame()">開始遊戲</button>
+    </div>
+
+    <div id="quiz-screen" class="hidden">
+        <div id="score-display">題目: <span id="current-q">1</span>/8 | 分數: <span id="score">0</span></div>
+        
+        <img id="question-image" src="" alt="題目示意圖">
+        
+        <div id="question" class="question-text">載入題目中...</div>
+        
+        <div id="options">
+            <button class="btn btn-growth" onclick="checkAnswer('growth')">🙋‍♂️ 生長</button>
+            <button class="btn btn-development" onclick="checkAnswer('development')">🦸‍♂️ 發育</button>
+        </div>
+
+        <div id="feedback"></div>
+        <button id="next-btn" class="btn btn-next" onclick="nextQuestion()">下一題 ➔</button>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h1>遊戲結束！</h1>
+        <p class="question-text">你的最終得分是：<span id="final-score">0</span> / 8</p>
+        <p id="end-message"></p>
+        <button class="btn btn-start" onclick="location.reload()">再玩一次</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "樹木的「維管束形成層」細胞不斷進行有絲分裂，使得樹幹的直徑每年增加兩公分。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/4070061574463187452",
+            ans: "growth",
+            reason: "這被稱為「次級生長」，純粹是橫向物理體積與細胞數量的增加，沒有長出新器官。"
+        },
+        {
+            q: "人類視網膜上的原始神經細胞，根據周圍化學訊號的濃度，最終決定自己要變成負責感光的「視錐細胞」還是傳遞訊號的「雙極細胞」。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/12144407270247357012",
+            ans: "development",
+            reason: "這是經典的「細胞分化」過程，細胞選擇了特定的命運，屬於機能與結構的特化。"
+        },
+        {
+            q: "巨噬細胞（一種白血球）吞噬了大量入侵的細菌後，內部積累了許多食泡，導致該細胞的體積明顯膨脹。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/1386834506323487938",
+            ans: "growth",
+            reason: "細胞單純因為攝入物質而撐大，這屬於純物理體積的增加。"
+        },
+        {
+            q: "豆科植物的根部與土壤中的根瘤菌共生後，根部細胞發生了結構性改變，長出了能夠將空氣中氮氣轉化為養分的「根瘤」。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/16195577439786439890",
+            ans: "development",
+            reason: "植物細胞為了獲得全新的生存功能（固氮），改變了原有的組織結構。"
+        },
+        {
+            q: "胎兒在子宮內發育時，手指之間的蹼狀組織透過「細胞凋亡」主動死亡，讓五根手指能夠獨立靈活活動。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/14101642212425636415",
+            ans: "development",
+            reason: "細胞數量雖然「減少」了，但這種局部的細胞死亡是為了塑造更複雜、更高級的器官結構與功能！"
+        },
+        {
+            q: "某個基因突變導致大腸內的細胞失去控制，瘋狂堆疊繁殖，形成了一顆體積龐大的大腸腫瘤。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/12082513424443124573",
+            ans: "growth",
+            reason: "癌細胞只有不受控的數量暴增，無法形成具有正常生理功能的組織，因此絕對不是發育。"
+        },
+        {
+            q: "哺乳動物的未成熟紅血球在進入血液循環前，主動將自己的「細胞核與粒線體」全部排出細胞外，騰出最大空間來攜帶血紅素。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/8586615945518388122",
+            ans: "development",
+            reason: "細胞主動丟棄了重要胞器，質量看似減少，但這是為了「極致特化」其攜氧功能所必須經歷的成熟進化。"
+        },
+        {
+            q: "兩棲類的六角恐龍終其一生都保留了幼體才有的羽狀外鰓，完全沒有經歷變態，但體型卻能從 2 公分長到 30 公分長。",
+            img: "http://googleusercontent.com/image_collection/image_retrieval/4467048108221387335",
+            ans: "growth",
+            reason: "這稱為「幼態延續」。牠的體型變大了，但並沒有啟動器官特化的變態發育機制。"
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+
+    function startGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        document.getElementById('options').style.display = 'block';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+        
+        document.getElementById('current-q').innerText = currentQuestionIndex + 1;
+        document.getElementById('question').innerText = questions[currentQuestionIndex].q;
+        
+        // 載入並顯示圖片
+        const imgElement = document.getElementById('question-image');
+        if (questions[currentQuestionIndex].img) {
+            imgElement.src = questions[currentQuestionIndex].img;
+            imgElement.style.display = 'block';
+        } else {
+            imgElement.style.display = 'none';
+        }
+    }
+
+    function checkAnswer(userAnswer) {
+        const currentQ = questions[currentQuestionIndex];
+        const feedbackDiv = document.getElementById('feedback');
+        
+        document.getElementById('options').style.display = 'none';
+        feedbackDiv.style.display = 'block';
+        document.getElementById('next-btn').style.display = 'inline-block';
+
+        if (userAnswer === currentQ.ans) {
+            score++;
+            document.getElementById('score').innerText = score;
+            feedbackDiv.className = 'correct';
+            feedbackDiv.innerHTML = "<strong>✅ 答對了！</strong><br>" + currentQ.reason;
+        } else {
+            feedbackDiv.className = 'wrong';
+            feedbackDiv.innerHTML = "<strong>❌ 答錯了！</strong><br>正確答案是：" + 
+                                    (currentQ.ans === 'growth' ? "生長" : "發育") + "<br>" + currentQ.reason;
+        }
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < questions.length) {
+            loadQuestion();
+        } else {
+            showEndScreen();
+        }
+    }
+
+    function showEndScreen() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('end-screen').classList.remove('hidden');
+        document.getElementById('final-score').innerText = score;
+        
+        const msgDiv = document.getElementById('end-message');
+        if(score === 8) {
+            msgDiv.innerText = "太厲害了！你擁有完美的生物學直覺！";
+        } else if (score >= 5) {
+            msgDiv.innerText = "表現不錯！你已經掌握了大部分的核心觀念。";
+        } else {
+            msgDiv.innerText = "繼續加油！多複習一下細胞分化與特化的概念喔。";
+        }
+    }
+</script>
+
+</body>
+</html>
